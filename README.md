@@ -1,5 +1,9 @@
 ## Fine-Grained Halu Taiwan
 
+### Dataset
+- `dataset.jsonl`
+- 欄位 : id, ground_truth (原始短文), content_w_errors (加完錯誤的), type (預設的插入錯誤類別), errors (文中錯誤), errors_type (文中各錯誤類別)
+
 ### 錯誤產生過程 (已完成)
 
 1. `txts/gt.txt` 為整理好的短文，每篇一行
