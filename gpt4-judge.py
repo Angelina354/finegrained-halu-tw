@@ -1,30 +1,26 @@
 from openai import OpenAI
-import pickle
-import sys
+from dataset import load_dataset
+from tqdm import tqdm
+import pickle, sys
+
+huggingface_token = "**access token**"
+dataset_type = "short" # or "medium" or "long"
+dataset = load_dataset("json", data_files=f"cjli/finegrained-halu-tw/dataset_{dataset_type}.jsonl", use_auth_token=huggingface_token)
 
 client = OpenAI(api_key = "**api key**")
 system_content = "您精通繁體中文書寫，且善於推理，明察秋毫。"
 
 modelname = sys.argv[1] # 7b, 8b or breeze
-erroneous_texts = "txts/error.txt"
-list_of_all_errors = "txts/wronglist.txt"
 outfile = f"outs/eval-{modelname}.txt"
 
 with open(f'outs/{modelname}-res.pkl', 'rb') as f:
     model_anss = pickle.load(f)
-with open(erroneous_texts, 'r') as f:
-    error_texts = f.readlines()
-with open(list_of_all_errors, 'r') as f:
-    error_list = f.readlines()
 
-cnt = 0
-for i in range(0,90):
-    print(i)
-    text = error_texts[i].strip()
+for i, data in enum(tqdm(dataset)):
+    text = data["content_w_errors"]
+    errors = data["errors"]
     model_ans = model_anss[i].strip()
-    #print(model_ans)
-    while True:
-        error = error_list[cnt].strip()
+    for error in errors:
         judge_prompt = f"""以下是一篇短文[Text]和它裡面出現的錯誤資訊[Error]。您的任務是判斷模型回答[Model Answer]有無找出這項錯誤，有找出錯誤為Yes，無找出錯誤為No。
 
 [Text]
@@ -53,7 +49,7 @@ for i in range(0,90):
 [Label]
         """
         #print(judge_prompt)
-        #exit(0)
+        
         completion = client.chat.completions.create(
             model="gpt-4-turbo-2024-04-09",
             messages=[
@@ -63,13 +59,10 @@ for i in range(0,90):
         )
 
         judge_result = completion.choices[0].message.content
-        #print(judge_result)
         
-        with open(outfile, "a") as f:
+        with open(outfile, "a") as f: # finish judging one error
             f.write(judge_result)
             f.write("\n")
-        cnt += 1
-        if (error_list[cnt][0:2])=='1.': break
 
-    with open(outfile, "a") as f:
+    with open(outfile, "a") as f: # finish judging one article
         f.write("\n=====\n")
