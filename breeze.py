@@ -1,9 +1,12 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from dataset import load_dataset
 import torch
 import pickle
 
-original_texts = "txts/gt.txt"
-erroneous_texts = "txts/error.txt"
+huggingface_token = "**access token**"
+dataset_type = "short" # or "medium" or "long"
+dataset = load_dataset("json", data_files=f"cjli/finegrained-halu-tw/dataset_{dataset_type}.jsonl", use_auth_token=huggingface_token)
+
 output_file = "outs/breeze-res.pkl"
 
 # Instruction Model
@@ -16,15 +19,10 @@ model = AutoModelForCausalLM.from_pretrained(
 
 tokenizer = AutoTokenizer.from_pretrained("MediaTek-Research/Breeze-7B-Instruct-v1_0")
 
-with open(original_texts, 'r') as f:
-    gts = f.readlines()
-with open(erroneous_texts, 'r') as f:
-    errors = f.readlines()
 responses = []
-
-for i in range(0,90):
-    text1 = gts[i]
-    text2 = errors[i]
+for data in dataset:
+    text1 = data["ground_truth"]
+    text2 = data["content_w_error"]
     chat = [
       {"role": "user", "content": "你好，請只根據短文一的內容，判斷短文二的正確性。若短文二有誤，請列出違背事實或無法驗證之處。請遵循1. 錯誤一\n 2. 錯誤二\n 的格式直接回應。"},
       {"role": "assistant", "content": "沒問題！請提供短文一與短文二給我，來幫助您判斷。"},
@@ -33,7 +31,7 @@ for i in range(0,90):
 
     outputs = model.generate(tokenizer.apply_chat_template(chat, return_tensors="pt"),
                              # adjust below parameters if necessary
-                             max_new_tokens=128,
+                             max_new_tokens=512,
                              top_p=0.01,
                              top_k=85,
                              repetition_penalty=1.1,
