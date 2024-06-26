@@ -22,7 +22,7 @@ tokenizer = AutoTokenizer.from_pretrained("MediaTek-Research/Breeze-7B-Instruct-
 responses = []
 for data in dataset:
     text1 = data["ground_truth"]
-    text2 = data["content_w_error"]
+    text2 = data["content_w_errors"]
     chat = [
       {"role": "user", "content": "你好，請只根據短文一的內容，判斷短文二的正確性。若短文二有誤，請列出違背事實或無法驗證之處。請遵循1. 錯誤一\n 2. 錯誤二\n 的格式直接回應。"},
       {"role": "assistant", "content": "沒問題！請提供短文一與短文二給我，來幫助您判斷。"},
